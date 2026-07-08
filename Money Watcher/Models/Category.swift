@@ -11,11 +11,15 @@ final class Category: Identifiable {
     
     @Relationship(deleteRule: .cascade)
     var transactions: [Transaction] = []
+    
+    static let defaultLabel = "Uncategorised"
+    var isDefault: Bool = false
 
-    init(name: String, colorName: String, budgetAmount: Double) {
+    init(name: String, colorName: String, budgetAmount: Double, isDefault: Bool = false) {
         self.name = name
         self.colorName = colorName
         self.budgetAmount = budgetAmount
+        self.isDefault = isDefault
     }
 
     var color: Color {

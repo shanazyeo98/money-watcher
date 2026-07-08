@@ -10,7 +10,9 @@ struct Money_WatcherApp: App {
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: [config])
+            let container = try ModelContainer(for: schema, configurations: [config])
+            seedDefaultCategoryIfNeeded(container)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -21,5 +23,19 @@ struct Money_WatcherApp: App {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private static func seedDefaultCategoryIfNeeded(_ cont: ModelContainer) {
+        let isExistingCategorySeeded = (try? cont.mainContext.fetch(
+            FetchDescriptor<Category>(
+                predicate: #Predicate { $0.isDefault }
+            )
+        ).isEmpty) == false
+        
+        guard !isExistingCategorySeeded else { return }
+        
+        let uncategorisedCategory = Category(name: "Uncategorised", colorName: "gray", budgetAmount: 0, isDefault: true)
+        cont.mainContext.insert(uncategorisedCategory)
+        try? cont.mainContext.save()
     }
 }

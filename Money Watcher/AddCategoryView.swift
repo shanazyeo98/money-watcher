@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct AddCategoryView: View {
+    // workspace or session with the database - view access to the database
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
@@ -61,7 +62,8 @@ struct AddCategoryView: View {
             .onAppear(perform: populateIfEditing)
         }
     }
-
+    
+    // returns one object but containing multiple child views
     @ViewBuilder
     private func colorSwatch(_ colorName: String) -> some View {
         ZStack {

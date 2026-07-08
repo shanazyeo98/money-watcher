@@ -1,10 +1,15 @@
 import SwiftUI
 import SwiftData
 
+// Environment: a dictionary of shared values that flows down the view hierarchy
+
 struct AddTransactionView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var categories: [Category]
+    private var validCategories: [Category] {
+        categories.filter { $0.isDefault == false }
+    }
 
     @State private var amountText = ""
     @State private var desc = ""
@@ -34,14 +39,14 @@ struct AddTransactionView: View {
                 }
 
                 Section("Category") {
-                    if categories.isEmpty {
+                    if validCategories.isEmpty {
                         Text("No categories — add some in Settings first.")
                             .foregroundStyle(.secondary)
                             .font(.subheadline)
                     } else {
                         Picker("Category", selection: $selectedCategory) {
                             Text("None").tag(nil as Category?)
-                            ForEach(categories) { category in
+                            ForEach(validCategories) { category in
                                 HStack {
                                     Circle()
                                         .fill(category.color)
@@ -64,6 +69,9 @@ struct AddTransactionView: View {
                     Button("Add") { save() }
                         .disabled(!isValid)
                 }
+            }
+            .task {
+                selectedCategory = categories.first { $0.isDefault }
             }
         }
     }

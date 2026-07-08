@@ -2,6 +2,9 @@ import SwiftUI
 import SwiftData
 import Charts
 
+// @Query : wrapper that automatically fetches the objects stored in the database
+// data is live and fetches automatically
+
 struct HomeView: View {
     @Query(sort: \Category.name)
     private var categories: [Category]
@@ -20,6 +23,7 @@ struct HomeView: View {
     }
     
     private var overallProgress: Double {
+        if totalBudget <= 0 && totalSpent > 0 { return 1.0 }
         guard totalBudget > 0 else { return 0 }
         return min(totalSpent / totalBudget, 1.0)
     }
@@ -157,6 +161,7 @@ struct CategoryProgressRow: View {
     let currencyCode: String
     
     private var progress: Double {
+        if category.budgetAmount <= 0 && category.totalSpent > 0 { return 1.0 }
         guard category.budgetAmount > 0 else { return 0 }
         return min(category.totalSpent / category.budgetAmount, 1.0)
     }

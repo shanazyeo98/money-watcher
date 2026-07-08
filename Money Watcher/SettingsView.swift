@@ -4,6 +4,9 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var categories: [Category]
+    private var validCategories: [Category] {
+        categories.filter { !$0.isDefault }
+    }
     
     @State private var showingAddCategory = false
     @State private var editingCategory: Category?
@@ -11,12 +14,12 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section {
-                if categories.isEmpty {
+                if validCategories.isEmpty {
                     Text("No categories yet — tap + to add one.")
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                 } else {
-                    ForEach(categories) { category in
+                    ForEach(validCategories) { category in
                         CategorySettingsRow(category: category)
                             .contentShape(Rectangle())
                             .onTapGesture { editingCategory = category }

@@ -1,6 +1,8 @@
 import Foundation
 import SwiftData
 
+// SwiftData: the objects needed in the database are marked with @Model
+
 @Model
 final class Transaction {
     var amount: Double
