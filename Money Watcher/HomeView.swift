@@ -10,40 +10,38 @@ struct HomeView: View {
     private var date: Date {
         Date()
     }
-
+    
     private var totalBudget: Double {
         categories.reduce(0.0) { $0 + $1.budgetAmount }
     }
-
+    
     private var totalSpent: Double {
         transactions.reduce(0.0) { $0 + $1.amount }
     }
-
+    
     private var overallProgress: Double {
         guard totalBudget > 0 else { return 0 }
         return min(totalSpent / totalBudget, 1.0)
     }
     
     private var currencyCode: String = "AUD"
-
+    
     var body: some View {
-//        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    overallCard
-                    breakdownCard
-                    if categories.isEmpty {
-                        emptyState
-                    } else {
-                        categoryBreakdown
-                    }
+        ScrollView {
+            VStack(spacing: 20) {
+                overallCard
+                breakdownCard
+                if categories.isEmpty {
+                    emptyState
+                } else {
+                    categoryBreakdown
                 }
-                .padding()
             }
-            .navigationTitle("\(Text(date, format: .dateTime.month(.wide)))'s Overview")
-//        }
+            .padding()
+        }
+        .navigationTitle("\(Text(date, format: .dateTime.month(.wide)))'s Overview")
     }
-
+    
     private var overallCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             
@@ -51,7 +49,7 @@ struct HomeView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
             
-
+            
             HStack(alignment: .bottom, spacing: 6) {
                 Text(totalSpent, format: .currency(code: currencyCode))
                     .font(.system(size: 34, weight: .bold))
@@ -60,7 +58,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 5)
             }
-
+            
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 6)
@@ -73,7 +71,7 @@ struct HomeView: View {
                 }
             }
             .frame(height: 12)
-
+            
             HStack {
                 Text("\(Int(overallProgress * 100))% used")
                     .font(.caption)
@@ -91,7 +89,7 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
-
+    
     private var breakdownCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Breakdown")
@@ -124,19 +122,19 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
-
+    
     private var categoryBreakdown: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Categories")
                 .font(.headline)
                 .padding(.horizontal, 4)
-
+            
             ForEach(categories) { category in
                 CategoryProgressRow(category: category, currencyCode: currencyCode)
             }
         }
     }
-
+    
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "tray")
@@ -157,14 +155,14 @@ struct HomeView: View {
 struct CategoryProgressRow: View {
     let category: Category
     let currencyCode: String
-
+    
     private var progress: Double {
         guard category.budgetAmount > 0 else { return 0 }
         return min(category.totalSpent / category.budgetAmount, 1.0)
     }
-
+    
     private var isOverBudget: Bool { progress >= 1.0 }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -179,7 +177,7 @@ struct CategoryProgressRow: View {
                     .font(.caption)
                     .foregroundStyle(isOverBudget ? .red : .secondary)
             }
-
+            
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)

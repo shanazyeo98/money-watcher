@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 
+// TabView: a view that switches between multiple child views
+// NavigationStack: a view that displays a root view and enables you to present additional views over the root view
+
 struct ContentView: View {
     var body: some View {
         TabView {

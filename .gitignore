@@ -21,3 +21,7 @@ fastlane/screenshots/
 # macOS
 .AppleDouble
 .LSOverride
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
