@@ -37,6 +37,12 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section("Debug") {
+                NavigationLink("Debug Logs") {
+                    DebugLogView()
+                }
+            }
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $showingAddCategory) {
