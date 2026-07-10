@@ -25,6 +25,7 @@ enum SharedModelContainer {
             let storeURL = appGroupURL.appendingPathComponent("MoneyWatcher.sqlite")
             config = ModelConfiguration(schema: schema, url: storeURL)
         } else {
+            print("Could not generate app group storage")
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         }
 

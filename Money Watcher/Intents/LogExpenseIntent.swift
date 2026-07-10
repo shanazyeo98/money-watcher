@@ -7,14 +7,18 @@
 
 import AppIntents
 import SwiftData
+import SwiftData
 
 enum LogExpenseIntentError: Error, CustomLocalizedStringResourceConvertible {
     case invalidAmount
+    case noDefaultCategory
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .invalidAmount:
             return "Amount must be a number greater than 0."
+        case .noDefaultCategory:
+            return "No default category set up"
         }
     }
 }
@@ -35,10 +39,6 @@ struct LogExpenseIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        guard let amountValue = Double(amount), amountValue > 0 else {
-            throw LogExpenseIntentError.invalidAmount
-        }
-        
         let debugInfo = DebugLog(
             amount: amount,
             merchant: merchant,
@@ -47,20 +47,43 @@ struct LogExpenseIntent: AppIntent {
         let modelContext = SharedModelContainer.shared.mainContext
         modelContext.insert(debugInfo)
         
-//        let desc = [merchant, name]
-//            .filter { !$0.isEmpty }
-//            .joined(separator: " — ")
-//
-//        let modelContext = SharedModelContainer.shared.mainContext
-//
-//        let defaultCategory = try? modelContext.fetch(
-//            FetchDescriptor<Category>(predicate: #Predicate { $0.isDefault })
-//        ).first
-//
-//        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: defaultCategory)
-//        modelContext.insert(transaction)
+        try await storeTransaction()
+
         try modelContext.save()
 
         return .result()
+    }
+    
+    @MainActor
+    private func storeTransaction() async throws {
+        guard let amountValue = parseCurrencyAmount(amount), amountValue > 0 else {
+            throw LogExpenseIntentError.invalidAmount
+        }
+        
+        let desc = [merchant, name]
+            .filter { !$0.isEmpty }
+            .joined(separator: " — ")
+        
+        let modelContext = SharedModelContainer.shared.mainContext
+        
+        let categories = try modelContext.fetch(FetchDescriptor<Category>())
+        let defaultCategory = categories.first { $0.isDefault }
+        let parsedCategories = categories.map { $0.name }
+        var assignedCategory: String?
+        
+        guard let defaultCategoryName = defaultCategory?.name else {
+            throw LogExpenseIntentError.noDefaultCategory
+        }
+        
+        do {
+            assignedCategory = try await MerchantCategorizer.categorize(merchant: merchant, availableCategories: parsedCategories)
+        } catch {
+            assignedCategory = defaultCategoryName
+        }
+        
+        let category = categories.first { $0.name == assignedCategory }
+        
+        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category)
+        modelContext.insert(transaction)
     }
 }

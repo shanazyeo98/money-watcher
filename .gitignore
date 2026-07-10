@@ -25,3 +25,6 @@ fastlane/screenshots/
 # Xcode user data
 xcuserdata/
 *.xcuserstate
+
+# Secrets
+Money Watcher/Config/Secrets.xcconfig
