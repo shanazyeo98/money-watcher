@@ -15,6 +15,11 @@ enum MerchantCategorizerError: Error {
     case urlIssue
 }
 
+struct MerchantCategorization {
+    let category: String
+    let normalizedMerchant: String
+}
+
 enum MerchantCategorizer {
     private static let apiURL = URL(string: "https://api.anthropic.com/v1/messages")
     private static let model = "claude-haiku-4-5"
@@ -29,7 +34,7 @@ enum MerchantCategorizer {
     static func categorize(
         merchant: String,
         availableCategories: [String]
-    ) async throws -> String {
+    ) async throws -> MerchantCategorization {
         guard let apiKey, !apiKey.isEmpty else {
             throw MerchantCategorizerError.missingAPIKey
         }
@@ -45,16 +50,21 @@ enum MerchantCategorizer {
                 "properties": [
                     "category": [
                         "type": "string",
-                        "enum": availableCategories
+                        "enum": availableCategories,
+                        "description": "Assign the single best-fitting spending category to this transaction. If there is no match, assign it to Uncategorised"
+                    ],
+                    "normalizedMerchant": [
+                        "type": "string",
+                        "description": "The general brand/store name only — with location, suburb, branch numbers, and payment-processor prefixes removed"
                     ]
                 ],
-                "required": ["category"]
+                "required": ["category", "normalizedMerchant"]
             ]
         ]
         
         let userContent = """
             Merchant: \(merchant)
-            Pick the single best-fitting category for this transaction from the available options
+            Pick the single best-fitting category for this transaction from the available options and return the general brand/store name — with location, suburb, branch numbers, and payment-processor prefixes removed
             """
         
         let body: [String: Any] = [
@@ -88,11 +98,12 @@ enum MerchantCategorizer {
             let content = json["content"] as? [[String: Any]],
             let toolUse = content.first(where: { $0["type"] as? String == "tool_use" }),
             let input = toolUse["input"] as? [String: Any],
-            let category = input["category"] as? String
+            let category = input["category"] as? String,
+            let returnedMerchant = input["normalizedMerchant"] as? String
         else {
             throw MerchantCategorizerError.invalidResponse
         }
         
-        return category
+        return MerchantCategorization(category: category, normalizedMerchant: returnedMerchant)
     }
 }

@@ -38,6 +38,12 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Automation") {
+                NavigationLink("Merchant Mappings") {
+                    MerchantMappingsView()
+                }
+            }
+
             Section("Debug") {
                 NavigationLink("Debug Logs") {
                     DebugLogView()

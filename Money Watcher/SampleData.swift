@@ -34,6 +34,8 @@ enum SampleData {
 //            )
 //            ctx.insert(t)
 //        }
+        let sampleMerchantMapping = MerchantMapping(key: "Bunsik", merchantName: "Bunsik Rhodes", category: "Dining Out")
+        ctx.insert(sampleMerchantMapping)
 
         return container
     }()

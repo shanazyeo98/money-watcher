@@ -17,7 +17,8 @@ enum SharedModelContainer {
         let schema = Schema([
             Category.self,
             Transaction.self,
-            DebugLog.self
+            DebugLog.self,
+            MerchantMapping.self
         ])
 
         let config: ModelConfiguration
