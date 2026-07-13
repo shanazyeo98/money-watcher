@@ -15,6 +15,10 @@ struct AddTransactionView: View {
     @State private var desc = ""
     @State private var date = Date()
     @State private var selectedCategory: Category?
+    @State private var isRecurring = false
+    @State private var selectedRecurrence: Recurrence = .day
+    @State private var endDate: Date = Date()
+    @State private var hasEndDate = false
 
     private var isValid: Bool {
         guard let value = Double(amountText) else { return false }
@@ -36,6 +40,21 @@ struct AddTransactionView: View {
                 Section("Details") {
                     TextField("Description (optional)", text: $desc)
                     DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
+                
+                Section("Recurrence") {
+                    Toggle("Is Recurring?", isOn: $isRecurring)
+                    if isRecurring {
+                        Picker("Recurrence", selection: $selectedRecurrence) {
+                            ForEach(Recurrence.allCases, id: \.self) { option in
+                                Text(option.description).tag(option)
+                            }
+                        }
+                        Toggle("Has End Date?", isOn: $hasEndDate.animation())
+                        if hasEndDate {
+                            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                        }
+                    }
                 }
 
                 Section("Category") {
@@ -80,6 +99,21 @@ struct AddTransactionView: View {
         guard let amount = Double(amountText), amount > 0 else { return }
         let transaction = Transaction(amount: amount, desc: desc, date: date, category: selectedCategory)
         modelContext.insert(transaction)
+        if isRecurring {
+            let recurringTxn = RecurringTransaction(
+                desc: desc,
+                amount: amount,
+                category: selectedCategory,
+                frequency: selectedRecurrence,
+                latestOccurence: date,
+                endDate: hasEndDate ? endDate : nil
+            )
+            modelContext.insert(recurringTxn)
+        }
         dismiss()
     }
+}
+
+#Preview {
+    AddTransactionView()
 }

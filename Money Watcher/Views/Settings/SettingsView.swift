@@ -42,6 +42,9 @@ struct SettingsView: View {
                 NavigationLink("Merchant Mappings") {
                     MerchantMappingsView()
                 }
+                NavigationLink("Recurring Transactions") {
+                    RecurringTransactionsView()
+                }
             }
 
             Section("Debug") {
