@@ -1,9 +1,7 @@
 import SwiftUI
 import SwiftData
 
-// Environment: a dictionary of shared values that flows down the view hierarchy
-
-struct AddTransactionView: View {
+struct EditTransactionView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var categories: [Category]
@@ -11,18 +9,24 @@ struct AddTransactionView: View {
         categories.filter { $0.isDefault == false }
     }
 
-    @State private var amountText = ""
-    @State private var desc = ""
-    @State private var date = Date()
+    let transaction: Transaction
+
+    @State private var amountText: String
+    @State private var desc: String
+    @State private var date: Date
     @State private var selectedCategory: Category?
-    @State private var isRecurring = false
-    @State private var selectedRecurrence: Recurrence = .day
-    @State private var endDate: Date = Date()
-    @State private var hasEndDate = false
+
+    init(transaction: Transaction) {
+        self.transaction = transaction
+        _amountText = State(initialValue: String(transaction.amount))
+        _desc = State(initialValue: transaction.desc)
+        _date = State(initialValue: transaction.date)
+        _selectedCategory = State(initialValue: transaction.category)
+    }
 
     private var isValid: Bool {
         guard let value = Double(amountText) else { return false }
-        return value > 0 && !desc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return value > 0
     }
 
     var body: some View {
@@ -38,23 +42,8 @@ struct AddTransactionView: View {
                 }
 
                 Section("Details") {
-                    TextField("Description", text: $desc)
+                    TextField("Description (optional)", text: $desc)
                     DatePicker("Date", selection: $date, displayedComponents: .date)
-                }
-                
-                Section("Recurrence") {
-                    Toggle("Is Recurring?", isOn: $isRecurring)
-                    if isRecurring {
-                        Picker("Recurrence", selection: $selectedRecurrence) {
-                            ForEach(Recurrence.allCases, id: \.self) { option in
-                                Text(option.description).tag(option)
-                            }
-                        }
-                        Toggle("Has End Date?", isOn: $hasEndDate.animation())
-                        if hasEndDate {
-                            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                        }
-                    }
                 }
 
                 Section("Category") {
@@ -78,42 +67,30 @@ struct AddTransactionView: View {
                     }
                 }
             }
-            .navigationTitle("Add Transaction")
+            .navigationTitle("Edit Transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { save() }
+                    Button("Save") { save() }
                         .disabled(!isValid)
                 }
-            }
-            .task {
-                selectedCategory = categories.first { $0.isDefault }
             }
         }
     }
 
     private func save() {
-        guard isValid, let amount = Double(amountText) else { return }
-        let transaction = Transaction(amount: amount, desc: desc, date: date, category: selectedCategory)
-        modelContext.insert(transaction)
-        if isRecurring {
-            let recurringTxn = RecurringTransaction(
-                desc: desc,
-                amount: amount,
-                category: selectedCategory,
-                frequency: selectedRecurrence,
-                latestOccurence: date,
-                endDate: hasEndDate ? endDate : nil
-            )
-            modelContext.insert(recurringTxn)
-        }
+        guard let amount = Double(amountText), amount > 0 else { return }
+        transaction.amount = amount
+        transaction.desc = desc
+        transaction.date = date
+        transaction.category = selectedCategory
         dismiss()
     }
 }
 
 #Preview {
-    AddTransactionView()
+    EditTransactionView(transaction: Transaction(amount: 12.5, desc: "Coffee", date: .now))
 }

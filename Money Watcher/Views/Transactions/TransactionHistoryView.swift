@@ -4,7 +4,8 @@ import SwiftData
 struct TransactionHistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
-    
+    @State private var editingTransaction: Transaction?
+
     var body: some View {
         Group {
             if transactions.isEmpty {
@@ -14,12 +15,17 @@ struct TransactionHistoryView: View {
             }
         }
         .navigationTitle("Transactions")
+        .sheet(item: $editingTransaction) { transaction in
+            EditTransactionView(transaction: transaction)
+        }
     }
-    
+
     private var transactionList: some View {
         List {
             ForEach(transactions) { transaction in
                 TransactionRow(transaction: transaction)
+                    .contentShape(Rectangle())
+                    .onTapGesture { editingTransaction = transaction }
             }
             .onDelete(perform: delete)
         }
