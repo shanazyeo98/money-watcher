@@ -189,7 +189,7 @@ struct CategoryProgressRow: View {
                         .fill(Color(.systemGray5))
                         .frame(height: 8)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(isOverBudget ? Color.red : category.color)
+                        .fill(category.color)
                         .frame(width: geo.size.width * progress, height: 8)
                         .animation(.easeInOut, value: progress)
                 }
