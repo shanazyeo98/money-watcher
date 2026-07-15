@@ -63,6 +63,7 @@ final class RecurringTransaction {
     init(desc: String, amount: Double, category: Category? = nil, frequency: Recurrence, latestOccurence: Date, endDate: Date?) {
         self.desc = desc
         self.amount = amount
+        self.category = category
         self.frequency = frequency
         self.latestOccurence = latestOccurence
         self.endDate = endDate

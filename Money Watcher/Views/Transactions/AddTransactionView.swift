@@ -89,7 +89,7 @@ struct AddTransactionView: View {
                         .disabled(!isValid)
                 }
             }
-            .task {
+            .onAppear {
                 selectedCategory = categories.first { $0.isDefault }
             }
         }
