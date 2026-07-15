@@ -12,6 +12,8 @@ struct AddCategoryView: View {
     @State private var budgetText = ""
     @State private var selectedColor = "blue"
 
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     private var isEditing: Bool { category != nil }
 
     private var isValid: Bool {
@@ -29,7 +31,7 @@ struct AddCategoryView: View {
 
                 Section("Monthly Budget") {
                     HStack {
-                        Text("$")
+                        Text(CurrencySettings.symbol(for: currencyCode))
                             .foregroundStyle(.secondary)
                         TextField("0.00", text: $budgetText)
                             .keyboardType(.decimalPad)

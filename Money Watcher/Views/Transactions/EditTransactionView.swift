@@ -16,6 +16,8 @@ struct EditTransactionView: View {
     @State private var date: Date
     @State private var selectedCategory: Category?
 
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     init(transaction: Transaction) {
         self.transaction = transaction
         _amountText = State(initialValue: String(transaction.amount))
@@ -34,7 +36,7 @@ struct EditTransactionView: View {
             Form {
                 Section("Amount") {
                     HStack {
-                        Text("$")
+                        Text(CurrencySettings.symbol(for: currencyCode))
                             .foregroundStyle(.secondary)
                         TextField("0.00", text: $amountText)
                             .keyboardType(.decimalPad)

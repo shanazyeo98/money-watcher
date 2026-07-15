@@ -56,7 +56,9 @@ struct TransactionHistoryView: View {
 
 struct TransactionRow: View {
     let transaction: Transaction
-    
+
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -75,7 +77,7 @@ struct TransactionRow: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 2) {
-                Text(transaction.amount, format: .currency(code: "USD"))
+                Text(transaction.amount, format: .currency(code: currencyCode))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Text(transaction.date, format: .dateTime.month(.abbreviated).day().year())

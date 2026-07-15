@@ -10,7 +10,9 @@ struct SettingsView: View {
     
     @State private var showingAddCategory = false
     @State private var editingCategory: Category?
-    
+
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     var body: some View {
         List {
             Section {
@@ -36,6 +38,15 @@ struct SettingsView: View {
                         Image(systemName: "plus")
                     }
                 }
+            }
+
+            Section("Currency") {
+                Picker("Currency", selection: $currencyCode) {
+                    ForEach(CurrencySettings.selectableCodes, id: \.self) { code in
+                        Text(CurrencySettings.displayName(for: code)).tag(code)
+                    }
+                }
+                .pickerStyle(.navigationLink)
             }
 
             Section("Automation") {
@@ -71,7 +82,9 @@ struct SettingsView: View {
 
 struct CategorySettingsRow: View {
     let category: Category
-    
+
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -80,7 +93,7 @@ struct CategorySettingsRow: View {
             Text(category.name)
                 .font(.body)
             Spacer()
-            Text(category.budgetAmount, format: .currency(code: "USD"))
+            Text(category.budgetAmount, format: .currency(code: currencyCode))
                 .foregroundStyle(.secondary)
                 .font(.subheadline)
             Image(systemName: "chevron.right")

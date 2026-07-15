@@ -20,6 +20,8 @@ struct AddTransactionView: View {
     @State private var endDate: Date = Date()
     @State private var hasEndDate = false
 
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     private var isValid: Bool {
         guard let value = Double(amountText) else { return false }
         return value > 0 && !desc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -30,7 +32,7 @@ struct AddTransactionView: View {
             Form {
                 Section("Amount") {
                     HStack {
-                        Text("$")
+                        Text(CurrencySettings.symbol(for: currencyCode))
                             .foregroundStyle(.secondary)
                         TextField("0.00", text: $amountText)
                             .keyboardType(.decimalPad)

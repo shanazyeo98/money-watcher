@@ -8,14 +8,7 @@
 import Foundation
 
 func parseCurrencyAmount(_ value: String) -> Double? {
-//    let formatter = NumberFormatter()
-//    formatter.numberStyle = .currency
-//    formatter.locale = Locale(identifier: "en_AU")
-    
-    let cleanedValue = value.replacingOccurrences(of: "A$", with: "").trimmingCharacters(in: .whitespaces)
-//    let amount = formatter.number(from: cleanedValue)?.doubleValue
-    let amount = Double(cleanedValue)
-    print("amount: \(amount), cleanedValue: \(cleanedValue)")
-    
-    return amount
+    let symbol = CurrencySettings.symbol(for: CurrencySettings.current)
+    let cleanedValue = value.replacingOccurrences(of: symbol, with: "").trimmingCharacters(in: .whitespaces)
+    return Double(cleanedValue)
 }

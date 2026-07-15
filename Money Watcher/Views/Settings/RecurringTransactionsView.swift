@@ -43,6 +43,8 @@ struct RecurringTransactionsView: View {
 private struct RecurringTransactionRow: View {
     let transaction: RecurringTransaction
 
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
+
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -56,7 +58,7 @@ private struct RecurringTransactionRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(transaction.amount, format: .currency(code: "USD"))
+            Text(transaction.amount, format: .currency(code: currencyCode))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Image(systemName: "chevron.right")
@@ -75,6 +77,8 @@ private struct EditRecurringTransactionView: View {
     }
 
     let transaction: RecurringTransaction
+
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
 
     @State private var desc: String
     @State private var amountText: String
@@ -105,7 +109,7 @@ private struct EditRecurringTransactionView: View {
             Form {
                 Section("Amount") {
                     HStack {
-                        Text("$")
+                        Text(CurrencySettings.symbol(for: currencyCode))
                             .foregroundStyle(.secondary)
                         TextField("0.00", text: $amountText)
                             .keyboardType(.decimalPad)

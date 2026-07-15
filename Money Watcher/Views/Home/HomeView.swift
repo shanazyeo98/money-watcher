@@ -28,7 +28,7 @@ struct HomeView: View {
         return min(totalSpent / totalBudget, 1.0)
     }
     
-    private var currencyCode: String = "AUD"
+    @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
     
     var body: some View {
         ScrollView {
