@@ -9,27 +9,30 @@ struct HomeView: View {
     @Query(sort: \Category.name)
     private var categories: [Category]
     @Query private var transactions: [Transaction]
-    
-    private var date: Date {
-        Date()
+
+    @State private var selectedMonth: Date = Calendar.current.startOfMonth(for: .now)
+    @State private var showMonthPicker = false
+
+    private var monthTransactions: [Transaction] {
+        transactions.filter { Calendar.current.isDate($0.date, equalTo: selectedMonth, toGranularity: .month) }
     }
-    
+
     private var totalBudget: Double {
         categories.reduce(0.0) { $0 + $1.budgetAmount }
     }
-    
+
     private var totalSpent: Double {
-        transactions.reduce(0.0) { $0 + $1.amount }
+        monthTransactions.reduce(0.0) { $0 + $1.amount }
     }
-    
+
     private var overallProgress: Double {
         if totalBudget <= 0 && totalSpent > 0 { return 1.0 }
         guard totalBudget > 0 else { return 0 }
         return min(totalSpent / totalBudget, 1.0)
     }
-    
+
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -43,17 +46,61 @@ struct HomeView: View {
             }
             .padding()
         }
-        .navigationTitle("\(Text(date, format: .dateTime.month(.wide)))'s Overview")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                monthSelector
+            }
+        }
+        .sheet(isPresented: $showMonthPicker) {
+            MonthYearPickerView(selectedMonth: $selectedMonth)
+        }
     }
-    
+
+    private var monthSelector: some View {
+        HStack(spacing: 18) {
+            Button {
+                changeMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+
+            Button {
+                showMonthPicker = true
+            } label: {
+                Text(selectedMonth, format: .dateTime.month(.wide).year())
+                    .fontWeight(.semibold)
+            }
+
+            Button {
+                changeMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+            }
+        }
+        .foregroundStyle(.primary)
+    }
+
+    private func changeMonth(by value: Int) {
+        if let newMonth = Calendar.current.date(byAdding: .month, value: value, to: selectedMonth) {
+            selectedMonth = newMonth
+        }
+    }
+
+    private func spent(for category: Category) -> Double {
+        monthTransactions
+            .filter { $0.category?.persistentModelID == category.persistentModelID }
+            .reduce(0.0) { $0 + $1.amount }
+    }
+
     private var overallCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
+
             Text("Total Budget")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            
-            
+
+
             HStack(alignment: .bottom, spacing: 6) {
                 Text(totalSpent, format: .currency(code: currencyCode))
                     .font(.system(size: 34, weight: .bold))
@@ -62,7 +109,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 5)
             }
-            
+
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 6)
@@ -75,7 +122,7 @@ struct HomeView: View {
                 }
             }
             .frame(height: 12)
-            
+
             HStack {
                 Text("\(Int(overallProgress * 100))% used")
                     .font(.caption)
@@ -93,13 +140,13 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
-    
+
     private var breakdownCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Breakdown")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            if transactions.isEmpty {
+            if monthTransactions.isEmpty {
                 Text("No transactions yet")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
@@ -107,7 +154,7 @@ struct HomeView: View {
             } else {
                 Chart(categories) { item in
                     SectorMark(
-                        angle: .value("Amount", item.totalSpent),
+                        angle: .value("Amount", spent(for: item)),
                         innerRadius: .ratio(0.75),
                         angularInset: 2.0
                     )
@@ -126,19 +173,19 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
-    
+
     private var categoryBreakdown: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Categories")
                 .font(.headline)
                 .padding(.horizontal, 4)
-            
+
             ForEach(categories) { category in
-                CategoryProgressRow(category: category, currencyCode: currencyCode)
+                CategoryProgressRow(category: category, spent: spent(for: category), currencyCode: currencyCode)
             }
         }
     }
-    
+
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "tray")
@@ -158,16 +205,17 @@ struct HomeView: View {
 
 struct CategoryProgressRow: View {
     let category: Category
+    let spent: Double
     let currencyCode: String
-    
+
     private var progress: Double {
-        if category.budgetAmount <= 0 && category.totalSpent > 0 { return 1.0 }
+        if category.budgetAmount <= 0 && spent > 0 { return 1.0 }
         guard category.budgetAmount > 0 else { return 0 }
-        return min(category.totalSpent / category.budgetAmount, 1.0)
+        return min(spent / category.budgetAmount, 1.0)
     }
-    
+
     private var isOverBudget: Bool { progress >= 1.0 }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -178,11 +226,11 @@ struct CategoryProgressRow: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("\(category.totalSpent.formatted(.currency(code: currencyCode))) / \(category.budgetAmount.formatted(.currency(code: currencyCode)))")
+                Text("\(spent.formatted(.currency(code: currencyCode))) / \(category.budgetAmount.formatted(.currency(code: currencyCode)))")
                     .font(.caption)
                     .foregroundStyle(isOverBudget ? .red : .secondary)
             }
-            
+
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
@@ -204,7 +252,15 @@ struct CategoryProgressRow: View {
     }
 }
 
+private extension Calendar {
+    func startOfMonth(for date: Date) -> Date {
+        self.date(from: dateComponents([.year, .month], from: date)) ?? date
+    }
+}
+
 #Preview {
-    HomeView()
-        .modelContainer(SampleData.preview)
+    NavigationStack {
+        HomeView()
+    }
+    .modelContainer(SampleData.preview)
 }
