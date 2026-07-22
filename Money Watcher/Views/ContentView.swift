@@ -33,6 +33,18 @@ struct ContentView: View {
             }
             
             NavigationStack {
+                TravelOverallView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            AddTravelButton()
+                        }
+                    }
+            }
+            .tabItem {
+                Label("Travel", systemImage: "airplane.up.right")
+            }
+            
+            NavigationStack {
                 SettingsView()
             }
             .tabItem {

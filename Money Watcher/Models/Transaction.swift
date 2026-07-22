@@ -9,11 +9,13 @@ final class Transaction {
     var desc: String
     var date: Date
     var category: Category?
+    var travel: Travel?
 
-    init(amount: Double, desc: String, date: Date, category: Category? = nil) {
+    init(amount: Double, desc: String, date: Date, category: Category? = nil, travel: Travel? = nil) {
         self.amount = amount
         self.desc = desc
         self.date = date
         self.category = category
+        self.travel = travel
     }
 }

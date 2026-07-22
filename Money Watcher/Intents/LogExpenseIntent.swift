@@ -92,7 +92,7 @@ struct LogExpenseIntent: AppIntent {
         
         let category = categories.first { $0.name == assignedCategory }
         
-        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category)
+        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category, travel: nil)
         modelContext.insert(transaction)
     }
     

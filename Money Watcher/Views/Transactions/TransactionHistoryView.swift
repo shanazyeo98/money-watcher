@@ -3,7 +3,7 @@ import SwiftData
 
 struct TransactionHistoryView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
+    @Query(filter: #Predicate<Transaction> { $0.travel == nil }, sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
     @Query(sort: \Category.name) private var categories: [Category]
     @State private var editingTransaction: Transaction?
 
@@ -72,7 +72,7 @@ struct TransactionHistoryView: View {
             )
         }
         .sheet(item: $editingTransaction) { transaction in
-            EditTransactionView(transaction: transaction)
+            TransactionFormView(transaction: transaction)
         }
     }
 

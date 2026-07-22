@@ -8,8 +8,10 @@
 import SwiftUI
 
 struct AddTransactionButton: View {
+    var defaultTravel: Travel? = nil
+
     @State private var showingAddTransaction = false
-    
+
     var body: some View {
         Button {
             showingAddTransaction = true
@@ -17,7 +19,7 @@ struct AddTransactionButton: View {
             Image(systemName: "plus")
         }
         .sheet(isPresented: $showingAddTransaction) {
-            AddTransactionView()
+            TransactionFormView(defaultTravel: defaultTravel)
         }
     }
 }
