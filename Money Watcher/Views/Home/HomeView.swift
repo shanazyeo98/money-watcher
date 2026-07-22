@@ -12,9 +12,47 @@ struct HomeView: View {
 
     @State private var selectedMonth: Date = Calendar.current.startOfMonth(for: .now)
     @State private var showMonthPicker = false
+    @State private var selectedDay: Date?
 
     private var monthTransactions: [Transaction] {
         transactions.filter { Calendar.current.isDate($0.date, equalTo: selectedMonth, toGranularity: .month) }
+    }
+
+    private var heatmapTransactions: [Transaction] {
+        monthTransactions.filter { $0.travel == nil }
+    }
+
+    private var dailyTotals: [Date: Double] {
+        Dictionary(grouping: heatmapTransactions) { Calendar.current.startOfDay(for: $0.date) }
+            .mapValues { $0.reduce(0.0) { $0 + $1.amount } }
+    }
+
+    private var maxDailyTotal: Double {
+        dailyTotals.values.max() ?? 0
+    }
+
+    private var calendarCells: [Date?] {
+        let calendar = Calendar.current
+        guard
+            let monthRange = calendar.range(of: .day, in: .month, for: selectedMonth),
+            let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth))
+        else { return [] }
+
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
+        let leadingBlanks = (firstWeekday - calendar.firstWeekday + 7) % 7
+
+        let days: [Date?] = monthRange.compactMap { day in
+            calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth)
+        }
+
+        return Array(repeating: nil, count: leadingBlanks) + days
+    }
+
+    private var weekdaySymbols: [String] {
+        let calendar = Calendar.current
+        let symbols = calendar.veryShortWeekdaySymbols
+        let startIndex = calendar.firstWeekday - 1
+        return Array(symbols[startIndex...] + symbols[..<startIndex])
     }
 
     private var totalBudget: Double {
@@ -38,6 +76,7 @@ struct HomeView: View {
             VStack(spacing: 20) {
                 overallCard
                 breakdownCard
+                spendingActivityCard
                 if categories.isEmpty {
                     emptyState
                 } else {
@@ -54,6 +93,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showMonthPicker) {
             MonthYearPickerView(selectedMonth: $selectedMonth)
+        }
+        .onChange(of: selectedMonth) {
+            selectedDay = nil
         }
     }
 
@@ -174,6 +216,68 @@ struct HomeView: View {
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
 
+    private var spendingActivityCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Spending Activity")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 4) {
+                ForEach(weekdaySymbols, id: \.self) { symbol in
+                    Text(symbol)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
+                ForEach(Array(calendarCells.enumerated()), id: \.offset) { _, day in
+                    if let day {
+                        DayCell(
+                            date: day,
+                            amount: dailyTotals[day] ?? 0,
+                            maxAmount: maxDailyTotal,
+                            selectedDay: $selectedDay
+                        )
+                    } else {
+                        Color.clear
+                            .frame(height: 28)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedDay = nil
+        }
+        .overlayPreferenceValue(DayCellAnchorKey.self) { anchors in
+            GeometryReader { proxy in
+                if let selectedDay, let anchor = anchors[selectedDay] {
+                    let rect = proxy[anchor]
+                    dayTooltip(for: selectedDay)
+                        .position(x: rect.midX, y: rect.minY - 20)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+    }
+
+    private func dayTooltip(for day: Date) -> some View {
+        Text("\(day.formatted(.dateTime.month(.abbreviated).day())) · \((dailyTotals[day] ?? 0).formatted(.currency(code: currencyCode)))")
+            .font(.caption)
+            .fontWeight(.medium)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+    }
+
     private var categoryBreakdown: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Categories")
@@ -249,6 +353,58 @@ struct CategoryProgressRow: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+    }
+}
+
+struct DayCellAnchorKey: PreferenceKey {
+    static var defaultValue: [Date: Anchor<CGRect>] = [:]
+    static func reduce(value: inout [Date: Anchor<CGRect>], nextValue: () -> [Date: Anchor<CGRect>]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
+struct DayCell: View {
+    let date: Date
+    let amount: Double
+    let maxAmount: Double
+    @Binding var selectedDay: Date?
+
+    private var isSelected: Bool {
+        selectedDay.map { Calendar.current.isDate($0, inSameDayAs: date) } ?? false
+    }
+
+    private var intensity: Double {
+        guard maxAmount > 0, amount > 0 else { return 0 }
+        return amount / maxAmount
+    }
+
+    private var fillColor: Color {
+        switch intensity {
+        case 0: Color(.systemGray5)
+        case ..<0.2: Color.accentColor.opacity(0.2)
+        case ..<0.4: Color.accentColor.opacity(0.4)
+        case ..<0.6: Color.accentColor.opacity(0.6)
+        case ..<0.8: Color.accentColor.opacity(0.8)
+        default: Color.accentColor
+        }
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 4)
+            .fill(fillColor)
+            .frame(height: 28)
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.secondary, lineWidth: 1.5)
+                }
+            }
+            .onTapGesture {
+                selectedDay = isSelected ? nil : date
+            }
+            .anchorPreference(key: DayCellAnchorKey.self, value: .bounds) { anchor in
+                isSelected ? [date: anchor] : [:]
+            }
     }
 }
 
