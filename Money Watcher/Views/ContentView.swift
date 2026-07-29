@@ -5,6 +5,9 @@ import SwiftData
 // NavigationStack: a view that displays a root view and enables you to present additional views over the root view
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(TravelModeManager.self) private var travelModeManager
+    
     var body: some View {
         TabView {
             NavigationStack {
@@ -54,6 +57,9 @@ struct ContentView: View {
                 Label("Settings", systemImage: "gear")
             }
             
+        }
+        .task {
+            travelModeManager.restore(from: modelContext)
         }
     }
 }

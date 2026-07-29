@@ -26,7 +26,7 @@ struct TravelOverallView: View {
         List {
             ForEach(travels) { travel in
                 NavigationLink {
-                    TravelDetailView(travel: travel)
+                    TravelDetailView(travel: travel, isMainView: false)
                 } label: {
                     TravelRow(travel: travel)
                 }

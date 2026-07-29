@@ -13,17 +13,19 @@ struct HomeView: View {
     @State private var selectedMonth: Date = Calendar.current.startOfMonth(for: .now)
     @State private var showMonthPicker = false
     @State private var selectedDay: Date?
+    
+    @Environment(TravelModeManager.self) private var travelModeManager
 
     private var monthTransactions: [Transaction] {
-        transactions.filter { Calendar.current.isDate($0.date, equalTo: selectedMonth, toGranularity: .month) }
+        transactions.filter { Calendar.current.isDate($0.date, equalTo: selectedMonth, toGranularity: .month) && $0.travel == nil }
     }
 
-    private var heatmapTransactions: [Transaction] {
-        monthTransactions.filter { $0.travel == nil }
-    }
+//    private var heatmapTransactions: [Transaction] {
+//        monthTransactions.filter { $0.travel == nil }
+//    }
 
     private var dailyTotals: [Date: Double] {
-        Dictionary(grouping: heatmapTransactions) { Calendar.current.startOfDay(for: $0.date) }
+        Dictionary(grouping: monthTransactions) { Calendar.current.startOfDay(for: $0.date) }
             .mapValues { $0.reduce(0.0) { $0 + $1.amount } }
     }
 
@@ -72,30 +74,35 @@ struct HomeView: View {
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                overallCard
-                breakdownCard
-                spendingActivityCard
-                if categories.isEmpty {
-                    emptyState
-                } else {
-                    categoryBreakdown
+        if travelModeManager.isTravelModeOn,
+           let travel = travelModeManager.activeTravel {
+            TravelDetailView(travel: travel, isMainView: true)
+        } else {
+            ScrollView {
+                VStack(spacing: 20) {
+                    overallCard
+                    breakdownCard
+                    spendingActivityCard
+                    if categories.isEmpty {
+                        emptyState
+                    } else {
+                        categoryBreakdown
+                    }
+                }
+                .padding()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    monthSelector
                 }
             }
-            .padding()
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                monthSelector
+            .sheet(isPresented: $showMonthPicker) {
+                MonthYearPickerView(selectedMonth: $selectedMonth)
             }
-        }
-        .sheet(isPresented: $showMonthPicker) {
-            MonthYearPickerView(selectedMonth: $selectedMonth)
-        }
-        .onChange(of: selectedMonth) {
-            selectedDay = nil
+            .onChange(of: selectedMonth) {
+                selectedDay = nil
+            }
         }
     }
 

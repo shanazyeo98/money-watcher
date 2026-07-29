@@ -8,6 +8,7 @@
 import AppIntents
 import SwiftData
 import Foundation
+import SwiftUI
 
 enum LogExpenseIntentError: Error, CustomLocalizedStringResourceConvertible {
     case invalidAmount
@@ -36,6 +37,8 @@ struct LogExpenseIntent: AppIntent {
 
     @Parameter(title: "Name")
     var name: String
+    
+    
 
     @MainActor
     func perform() async throws -> some IntentResult {
@@ -70,29 +73,36 @@ struct LogExpenseIntent: AppIntent {
         let defaultCategory = categories.first { $0.isDefault }
         let parsedCategories = categories.map { $0.name }
         var assignedCategory: String?
+        var assignedTravel: Travel?
         
         guard let defaultCategoryName = defaultCategory?.name else {
             throw LogExpenseIntentError.noDefaultCategory
         }
         
         let cleanedMerchant = cleanMerchantName()
-        let retrievedMappings = try modelContext.fetch(FetchDescriptor<MerchantMapping>())
         
-        if let retrievedCategoryFromMapping = try checkInternalMapping(for: cleanedMerchant, existingMappings: retrievedMappings) {
-            assignedCategory = retrievedCategoryFromMapping
+        if let activeTravelID = UserDefaults.standard.string(forKey: "activeTravelID") {
+            let travels = try modelContext.fetch(FetchDescriptor<Travel>())
+            assignedTravel = travels.first { $0.id.uuidString == activeTravelID }
         } else {
-            do {
-                let categorizedMerchant = try await MerchantCategorizer.categorize(merchant: cleanedMerchant, availableCategories: parsedCategories)
-                assignedCategory = categorizedMerchant.category
-                storeMapping(rawMerchant: cleanedMerchant, parsedMerchant: categorizedMerchant, existingMappings: retrievedMappings)
-            } catch {
-                assignedCategory = defaultCategoryName
+            let retrievedMappings = try modelContext.fetch(FetchDescriptor<MerchantMapping>())
+            
+            if let retrievedCategoryFromMapping = try checkInternalMapping(for: cleanedMerchant, existingMappings: retrievedMappings) {
+                assignedCategory = retrievedCategoryFromMapping
+            } else {
+                do {
+                    let categorizedMerchant = try await MerchantCategorizer.categorize(merchant: cleanedMerchant, availableCategories: parsedCategories)
+                    assignedCategory = categorizedMerchant.category
+                    storeMapping(rawMerchant: cleanedMerchant, parsedMerchant: categorizedMerchant, existingMappings: retrievedMappings)
+                } catch {
+                    assignedCategory = defaultCategoryName
+                }
             }
         }
         
-        let category = categories.first { $0.name == assignedCategory }
+        let category = categories.first { $0.name == assignedCategory } ?? defaultCategory
         
-        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category, travel: nil)
+        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category, travel: assignedTravel)
         modelContext.insert(transaction)
     }
     

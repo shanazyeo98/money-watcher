@@ -8,6 +8,7 @@ import SwiftData
 
 struct TravelDetailView: View {
     let travel: Travel
+    let isMainView: Bool
 
     @Environment(\.modelContext) private var modelContext
     @State private var editingTransaction: Transaction?
@@ -56,8 +57,10 @@ struct TravelDetailView: View {
                     Image(systemName: "pencil")
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                AddTransactionButton(defaultTravel: travel)
+            if !isMainView {
+                ToolbarItem(placement: .topBarTrailing) {
+                    AddTransactionButton(defaultTravel: travel)
+                }
             }
         }
         .sheet(item: $editingTransaction) { transaction in
@@ -158,17 +161,10 @@ struct TravelTransactionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(transaction.category?.color ?? Color(.systemGray3))
-                .frame(width: 10, height: 10)
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.desc.isEmpty ? "No description" : transaction.desc)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                Text(transaction.category?.name ?? "Uncategorized")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -186,20 +182,21 @@ struct TravelTransactionRow: View {
     }
 }
 
-#Preview {
-    let travel = Travel(
-        name: "Japan Trip",
-        startDate: .now,
-        endDate: Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now,
-        budget: 1000,
-        country: Country(id: "JP", name: "Japan"),
-        currencyCode: "JPY"
-    )
-    let txn1 = Transaction(amount: 4500, desc: "Ramen", date: .now, travel: travel)
-    let txn2 = Transaction(amount: 12000, desc: "Hotel", date: .now, travel: travel)
-    travel.transactions = [txn1, txn2]
-
-    return NavigationStack {
-        TravelDetailView(travel: travel)
-    }
-}
+//#Preview {
+//    let travel = Travel(
+//        name: "Japan Trip",
+//        name: "Japan Trip",
+//        startDate: .now,
+//        endDate: Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now,
+//        budget: 1000,
+//        country: Country(id: "JP", name: "Japan"),
+//        currencyCode: "JPY"
+//    )
+//    let txn1 = Transaction(amount: 4500, desc: "Ramen", date: .now, travel: travel)
+//    let txn2 = Transaction(amount: 12000, desc: "Hotel", date: .now, travel: travel)
+//    travel.transactions = [txn1, txn2]
+//
+//    return NavigationStack {
+//        TravelDetailView(travel: travel)
+//    }
+//}
