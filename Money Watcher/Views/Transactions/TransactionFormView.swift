@@ -25,47 +25,93 @@ struct TransactionFormView: View {
 
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
 
-    @State private var currencyCodeText = ""
+    @State private var selectedCurrencyCode = ""
+    @State private var exchangeRate: Double = 1.0
+    @State private var isFetchingRate = false
+    @State private var rateFetchFailed = false
 
     init(transaction: Transaction? = nil, defaultTravel: Travel? = nil) {
         self.transaction = transaction
         self.lockedTravel = defaultTravel
-        _amountText = State(initialValue: transaction.map { String($0.amount) } ?? "")
+        let travel = transaction?.travel ?? defaultTravel
+        _amountText = State(initialValue: transaction.map { String($0.originalAmount) } ?? "")
         _desc = State(initialValue: transaction?.desc ?? "")
         _date = State(initialValue: transaction?.date ?? Date())
         _selectedCategory = State(initialValue: transaction?.category)
-        _selectedTravel = State(initialValue: transaction?.travel ?? defaultTravel)
+        _selectedTravel = State(initialValue: travel)
+        _selectedCurrencyCode = State(initialValue: transaction?.originalCurrencyCode ?? travel?.currencyCode ?? "")
+        _exchangeRate = State(initialValue: transaction?.exchangeRate ?? 1.0)
     }
 
     private var isValid: Bool {
         guard let value = Double(amountText) else { return false }
         return value > 0 && !desc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
-    private func setCurrencyCode() {
-        if let travel = selectedTravel {
-            currencyCodeText = CurrencySettings.symbol(for: travel.currencyCode)
-        } else {
-            currencyCodeText = CurrencySettings.symbol(for: currencyCode)
+
+    // Currency of the budget this transaction rolls up into: the travel's
+    // currency when tagged to a travel, otherwise the home currency.
+    private var targetCurrencyCode: String {
+        selectedTravel?.currencyCode ?? currencyCode
+    }
+
+    private var convertedAmountPreview: Double {
+        (Double(amountText) ?? 0) * exchangeRate
+    }
+
+    private func fetchRateIfNeeded() async {
+        guard selectedCurrencyCode != targetCurrencyCode else {
+            exchangeRate = 1.0
+            rateFetchFailed = false
+            return
         }
+
+        // Editing a transaction whose currency pair hasn't changed — keep the rate it was saved with.
+        if let transaction,
+           transaction.originalCurrencyCode == selectedCurrencyCode,
+           (transaction.travel?.currencyCode ?? currencyCode) == targetCurrencyCode {
+            exchangeRate = transaction.exchangeRate
+            rateFetchFailed = false
+            return
+        }
+
+        isFetchingRate = true
+        rateFetchFailed = false
+        try? await Task.sleep(for: .milliseconds(350))
+        guard !Task.isCancelled else { return }
+
+        do {
+            exchangeRate = try await ExchangeRateService.rate(from: selectedCurrencyCode, to: targetCurrencyCode)
+        } catch {
+            exchangeRate = 1.0
+            rateFetchFailed = true
+        }
+        isFetchingRate = false
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Amount") {
+                    Picker("Currency", selection: $selectedCurrencyCode) {
+                        ForEach(CurrencySettings.selectableCodes, id: \.self) { code in
+                            Text(CurrencySettings.displayName(for: code)).tag(code)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+
                     HStack {
-                        Text(currencyCodeText)
+                        Text(CurrencySettings.symbol(for: selectedCurrencyCode))
                             .foregroundStyle(.secondary)
-                            .onAppear {
-                                setCurrencyCode()
-                            }
-                            .onChange(of: selectedTravel) {
-                                setCurrencyCode()
-                            }
                         TextField("0.00", text: $amountText)
                             .keyboardType(.decimalPad)
                     }
+
+                    if selectedCurrencyCode != targetCurrencyCode {
+                        conversionPreviewRow
+                    }
+                }
+                .task(id: "\(selectedCurrencyCode)|\(targetCurrencyCode)") {
+                    await fetchRateIfNeeded()
                 }
 
                 Section("Details") {
@@ -140,36 +186,77 @@ struct TransactionFormView: View {
                 if transaction == nil {
                     selectedCategory = categories.first { $0.isDefault }
                 }
+                if selectedCurrencyCode.isEmpty {
+                    selectedCurrencyCode = targetCurrencyCode
+                }
             }
             .onChange(of: selectedTravel) { oldValue, newValue in
                 if newValue != nil {
                     isRecurring = false
                     selectedCategory = categories.first { $0.isDefault }
                 }
+                // Follow the new budget's currency by default; the user can still override it.
+                if transaction == nil {
+                    selectedCurrencyCode = newValue?.currencyCode ?? currencyCode
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var conversionPreviewRow: some View {
+        HStack {
+            if isFetchingRate {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Converting…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if rateFetchFailed {
+                Text("Rate unavailable — using 1:1. You can adjust this later.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                Text("≈ \(convertedAmountPreview.formatted(.currency(code: targetCurrencyCode)))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
     private func save() {
-        guard isValid, let amount = Double(amountText) else { return }
-        
+        guard isValid, let originalAmountValue = Double(amountText) else { return }
+        let convertedAmount = originalAmountValue * exchangeRate
+
         if selectedCategory == nil {
             selectedCategory = categories.first { $0.isDefault == true }
         }
 
         if let transaction {
-            transaction.amount = amount
+            transaction.amount = convertedAmount
             transaction.desc = desc
             transaction.date = date
             transaction.category = selectedCategory
             transaction.travel = selectedTravel
+            transaction.originalAmount = originalAmountValue
+            transaction.originalCurrencyCode = selectedCurrencyCode
+            transaction.exchangeRate = exchangeRate
         } else {
-            let newTransaction = Transaction(amount: amount, desc: desc, date: date, category: selectedCategory, travel: selectedTravel)
+            let newTransaction = Transaction(
+                amount: convertedAmount,
+                desc: desc,
+                date: date,
+                category: selectedCategory,
+                travel: selectedTravel,
+                originalAmount: originalAmountValue,
+                originalCurrencyCode: selectedCurrencyCode,
+                exchangeRate: exchangeRate
+            )
             modelContext.insert(newTransaction)
             if isRecurring {
                 let recurringTxn = RecurringTransaction(
                     desc: desc,
-                    amount: amount,
+                    amount: convertedAmount,
                     category: selectedCategory,
                     frequency: selectedRecurrence,
                     latestOccurence: date,

@@ -35,6 +35,7 @@ enum SharedModelContainer {
         do {
             let container = try ModelContainer(for: schema, configurations: [config])
             seedDefaultCategoryIfNeeded(container)
+            backfillTransactionCurrencyFieldsIfNeeded(container)
             return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
@@ -52,6 +53,23 @@ enum SharedModelContainer {
 
         let uncategorisedCategory = Category(name: "Uncategorised", colorName: "gray", budgetAmount: 0, isDefault: true)
         container.mainContext.insert(uncategorisedCategory)
+        try? container.mainContext.save()
+    }
+
+    private static func backfillTransactionCurrencyFieldsIfNeeded(_ container: ModelContainer) {
+        let unbackfilled = (try? container.mainContext.fetch(
+            FetchDescriptor<Transaction>(
+                predicate: #Predicate { $0.originalCurrencyCode == "" }
+            )
+        )) ?? []
+
+        guard !unbackfilled.isEmpty else { return }
+
+        for transaction in unbackfilled {
+            transaction.originalAmount = transaction.amount
+            transaction.exchangeRate = 1.0
+            transaction.originalCurrencyCode = transaction.travel?.currencyCode ?? CurrencySettings.current
+        }
         try? container.mainContext.save()
     }
 }

@@ -59,10 +59,10 @@ struct LogExpenseIntent: AppIntent {
     
     @MainActor
     private func storeTransaction() async throws {
-        guard let amountValue = parseCurrencyAmount(amount), amountValue > 0 else {
+        guard let parsedAmount = parseCurrencyAmount(amount), parsedAmount.amount > 0 else {
             throw LogExpenseIntentError.invalidAmount
         }
-        
+
         let desc = [merchant, name]
             .filter { !$0.isEmpty }
             .joined(separator: " — ")
@@ -101,8 +101,24 @@ struct LogExpenseIntent: AppIntent {
         }
         
         let category = categories.first { $0.name == assignedCategory } ?? defaultCategory
-        
-        let transaction = Transaction(amount: amountValue, desc: desc, date: Date(), category: category, travel: assignedTravel)
+
+        let targetCurrencyCode = assignedTravel?.currencyCode ?? CurrencySettings.current
+        let originalCurrencyCode = parsedAmount.currencyCode ?? targetCurrencyCode
+        var exchangeRate = 1.0
+        if originalCurrencyCode != targetCurrencyCode {
+            exchangeRate = (try? await ExchangeRateService.rate(from: originalCurrencyCode, to: targetCurrencyCode)) ?? 1.0
+        }
+
+        let transaction = Transaction(
+            amount: parsedAmount.amount * exchangeRate,
+            desc: desc,
+            date: Date(),
+            category: category,
+            travel: assignedTravel,
+            originalAmount: parsedAmount.amount,
+            originalCurrencyCode: originalCurrencyCode,
+            exchangeRate: exchangeRate
+        )
         modelContext.insert(transaction)
     }
     

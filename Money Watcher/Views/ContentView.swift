@@ -14,7 +14,7 @@ struct ContentView: View {
                 HomeView()
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            AddTransactionButton()
+                            AddTransactionButton(defaultTravel: travelModeManager.activeTravel)
                         }
                         ToolbarItem(placement: .topBarLeading) {
                             TravelModeButton()

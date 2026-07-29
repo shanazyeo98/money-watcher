@@ -159,6 +159,10 @@ struct TravelTransactionRow: View {
     let transaction: Transaction
     let currencyCode: String
 
+    private var wasConverted: Bool {
+        transaction.originalCurrencyCode != currencyCode
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
@@ -170,9 +174,14 @@ struct TravelTransactionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(transaction.amount, format: .currency(code: currencyCode))
+                Text(transaction.originalAmount, format: .currency(code: transaction.originalCurrencyCode))
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                if wasConverted {
+                    Text("≈ \(transaction.amount.formatted(.currency(code: currencyCode)))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Text(transaction.date, format: .dateTime.month(.abbreviated).day().year())
                     .font(.caption)
                     .foregroundStyle(.secondary)

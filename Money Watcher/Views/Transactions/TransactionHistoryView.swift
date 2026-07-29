@@ -201,6 +201,10 @@ struct TransactionRow: View {
 
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
 
+    private var wasConverted: Bool {
+        transaction.originalCurrencyCode != currencyCode
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -219,9 +223,14 @@ struct TransactionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(transaction.amount, format: .currency(code: currencyCode))
+                Text(transaction.originalAmount, format: .currency(code: transaction.originalCurrencyCode))
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                if wasConverted {
+                    Text("≈ \(transaction.amount.formatted(.currency(code: currencyCode)))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Text(transaction.date, format: .dateTime.month(.abbreviated).day().year())
                     .font(.caption)
                     .foregroundStyle(.secondary)

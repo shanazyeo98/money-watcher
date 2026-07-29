@@ -22,7 +22,16 @@ enum RecurrenceService {
                 while let next = expense.frequency.calculateNextOccurence(from: lastDate),
                       calendar.startOfDay(for: next) <= calendar.startOfDay(for: date),
                       expense.endDate == nil || calendar.startOfDay(for: next) <= calendar.startOfDay(for: expense.endDate!) {
-                    let newExpense = Transaction(amount: expense.amount, desc: expense.desc, date: calendar.startOfDay(for: next), category: expense.category, travel: nil)
+                    let newExpense = Transaction(
+                        amount: expense.amount,
+                        desc: expense.desc,
+                        date: calendar.startOfDay(for: next),
+                        category: expense.category,
+                        travel: nil,
+                        originalAmount: expense.amount,
+                        originalCurrencyCode: CurrencySettings.current,
+                        exchangeRate: 1.0
+                    )
                     context.insert(newExpense)
                     lastDate = next
                     expense.latestOccurence = lastDate

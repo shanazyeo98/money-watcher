@@ -6,7 +6,7 @@ enum SampleData {
     static var preview: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(
-            for: Category.self, Transaction.self,
+            for: Category.self, Transaction.self, Travel.self,
             configurations: config
         )
         let ctx = container.mainContext
@@ -25,17 +25,17 @@ enum SampleData {
             (199.00, "New shoes",           2, shopping),
             (35.00,  "Bus pass",            4, transport),
         ]
-//        for (amount, desc, daysAgo, cat) in txns {
-//            let t = Transaction(
-//                amount: amount,
-//                desc: desc,
-//                date: Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!,
-//                category: cat
-//            )
-//            ctx.insert(t)
-//        }
-        
-        let travel = Travel(name: "singapore", startDate: Date(), endDate: Date().addingTimeInterval(10000), budget: 60.00, country: Country(id: "SG", name: "Singapore"), currencyCode: "SGP")
+        for (amount, desc, daysAgo, cat) in txns {
+            let t = Transaction(
+                amount: amount,
+                desc: desc,
+                date: Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!,
+                category: cat
+            )
+            ctx.insert(t)
+        }
+
+        let travel = Travel(name: "singapore", startDate: Date(), endDate: Date().addingTimeInterval(10000), budget: 60.00, country: Country(id: "SG", name: "Singapore"), currencyCode: "SGD")
         
         ctx.insert(travel)
 
