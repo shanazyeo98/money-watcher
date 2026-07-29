@@ -16,18 +16,30 @@ struct StartTravelModeSheet: View {
     
     var body: some View {
         NavigationStack {
-            if travels.isEmpty {
-                noTravelsView
+            Group {
+                if travels.isEmpty {
+                    noTravelsView
+                }
+                else if !travelModeManager.isTravelModeOn {
+                    startTravelModeView
+                } else {
+                    endTravelModeView
+                }
             }
-            else if !travelModeManager.isTravelModeOn {
-                startTravelModeView
-            } else {
-                endTravelModeView
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
             }
         }
         .onAppear() {
             selectedTravel = travels.first
         }
+        
     }
     
     private var noTravelsView: some View {
