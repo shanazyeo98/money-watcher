@@ -10,6 +10,9 @@ import SwiftData
 struct TravelOverallView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Travel.startDate, order: .reverse) private var travels: [Travel]
+    @Environment(TravelModeManager.self) private var travelModeManager
+    
+    @State private var showingCannotDeleteAlert = false
 
     var body: some View {
         Group {
@@ -33,6 +36,11 @@ struct TravelOverallView: View {
             }
             .onDelete(perform: delete)
         }
+        .alert("Unable to delete travel", isPresented: $showingCannotDeleteAlert) {
+            Button("Ok", role: .cancel) { }
+        } message: {
+            Text("This travel is currently active in travel mode. Turn off travel mode before deleting")
+        }
     }
     
     private var emptyState: some View {
@@ -53,7 +61,12 @@ struct TravelOverallView: View {
     
     private func delete(_ offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(travels[index])
+            let travel = travels[index]
+            guard travel.id != travelModeManager.activeTravel?.id else {
+                showingCannotDeleteAlert = true
+                return
+            }
+            modelContext.delete(travel)
         }
     }
     
