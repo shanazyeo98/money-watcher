@@ -5,6 +5,7 @@ import SwiftData
 
 @Model
 final class Transaction {
+    var id: UUID
     var amount: Double
     var desc: String
     var date: Date
@@ -12,6 +13,7 @@ final class Transaction {
     var travel: Travel?
 
     init(amount: Double, desc: String, date: Date, category: Category? = nil, travel: Travel? = nil) {
+        self.id = UUID()
         self.amount = amount
         self.desc = desc
         self.date = date

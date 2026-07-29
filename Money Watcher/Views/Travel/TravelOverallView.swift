@@ -9,8 +9,8 @@ import SwiftData
 
 struct TravelOverallView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Travel.startDate) private var travels: [Travel]
-    
+    @Query(sort: \Travel.startDate, order: .reverse) private var travels: [Travel]
+
     var body: some View {
         Group {
             if travels.isEmpty {

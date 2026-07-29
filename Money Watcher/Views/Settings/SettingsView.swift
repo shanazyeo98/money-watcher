@@ -10,6 +10,7 @@ struct SettingsView: View {
     
     @State private var showingAddCategory = false
     @State private var editingCategory: Category?
+    @State private var isTravelModeOn = false
 
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
 
@@ -48,7 +49,7 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.navigationLink)
             }
-
+            
             Section("Automation") {
                 NavigationLink("Merchant Mappings") {
                     MerchantMappingsView()

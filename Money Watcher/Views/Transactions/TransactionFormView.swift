@@ -152,6 +152,10 @@ struct TransactionFormView: View {
 
     private func save() {
         guard isValid, let amount = Double(amountText) else { return }
+        
+        if selectedCategory == nil {
+            selectedCategory = categories.first { $0.isDefault == true }
+        }
 
         if let transaction {
             transaction.amount = amount

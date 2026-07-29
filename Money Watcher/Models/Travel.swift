@@ -8,6 +8,7 @@ import SwiftData
 
 @Model
 final class Travel {
+    var id: UUID
     var name: String
     var startDate: Date
     var endDate: Date
@@ -22,6 +23,7 @@ final class Travel {
     }
     
     init(name: String, startDate: Date, endDate: Date, budget: Double? = nil, country: Country, currencyCode: String) {
+        self.id = UUID()
         self.name = name
         self.startDate = startDate
         self.endDate = endDate

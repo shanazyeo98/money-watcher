@@ -19,7 +19,8 @@ enum SharedModelContainer {
             Transaction.self,
             DebugLog.self,
             MerchantMapping.self,
-            RecurringTransaction.self
+            RecurringTransaction.self,
+            Travel.self
         ])
 
         let config: ModelConfiguration

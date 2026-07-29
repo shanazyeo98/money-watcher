@@ -34,6 +34,10 @@ enum SampleData {
 //            )
 //            ctx.insert(t)
 //        }
+        
+        let travel = Travel(name: "singapore", startDate: Date(), endDate: Date().addingTimeInterval(10000), budget: 60.00, country: Country(id: "SG", name: "Singapore"), currencyCode: "SGP")
+        
+        ctx.insert(travel)
 
         return container
     }()

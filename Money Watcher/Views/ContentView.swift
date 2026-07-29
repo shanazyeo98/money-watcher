@@ -13,6 +13,9 @@ struct ContentView: View {
                         ToolbarItem(placement: .topBarTrailing) {
                             AddTransactionButton()
                         }
+                        ToolbarItem(placement: .topBarLeading) {
+                            TravelModeButton()
+                        }
                     }
             }
             .tabItem {
