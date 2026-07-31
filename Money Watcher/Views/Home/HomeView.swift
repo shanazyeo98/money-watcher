@@ -20,10 +20,6 @@ struct HomeView: View {
         transactions.filter { Calendar.current.isDate($0.date, equalTo: selectedMonth, toGranularity: .month) && $0.travel == nil }
     }
 
-//    private var heatmapTransactions: [Transaction] {
-//        monthTransactions.filter { $0.travel == nil }
-//    }
-
     private var dailyTotals: [Date: Double] {
         Dictionary(grouping: monthTransactions) { Calendar.current.startOfDay(for: $0.date) }
             .mapValues { $0.reduce(0.0) { $0 + $1.amount } }
@@ -68,7 +64,7 @@ struct HomeView: View {
     private var overallProgress: Double {
         if totalBudget <= 0 && totalSpent > 0 { return 1.0 }
         guard totalBudget > 0 else { return 0 }
-        return min(totalSpent / totalBudget, 1.0)
+        return totalSpent / totalBudget
     }
 
     @AppStorage(CurrencySettings.key, store: CurrencySettings.store) private var currencyCode = CurrencySettings.defaultCode
